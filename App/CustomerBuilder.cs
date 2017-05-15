@@ -7,35 +7,36 @@ namespace App
     public class CustomerBuilder : ICustomerBuilder
     {
         private static Customer _customer;
-        public CustomerBuilder()
+        private ICustomerValidator _customerValidator;
+        private ICustomerCreditService _customerCreditService;
+        private ICompanyRepository _companyRepository;
+
+        public CustomerBuilder(ICustomerValidator customerValidator, ICustomerCreditService customerCreditService, ICompanyRepository companyRepository)
         {
             _customer = new Customer();
+            _customerValidator = customerValidator;
+            _customerCreditService = customerCreditService;
+            _companyRepository = companyRepository;
         }
-        public ICustomerBuilder Add(string firstName, string surname, string email, DateTime dateOfBirth, ICustomerValidator customerValidator)
+        public ICustomerBuilder Add(string firstName, string surname, string email, DateTime dateOfBirth)
         {
             _customer.DateOfBirth = dateOfBirth;
             _customer.EmailAddress = email;
             _customer.Firstname = firstName;
             _customer.Surname = surname;
 
-            customerValidator.Validate(_customer);
+            _customerValidator.Validate(_customer);
             return this;
         }
 
-        public ICustomerBuilder AddCompany(int companyId, ICompanyRepository companyRepository)
+        public ICustomerBuilder AddCompany(int companyId)
         {
-            if (companyRepository == null)
-                throw new ArgumentException("Repository cannot be null");
-
-            _customer.Company = companyRepository.GetById(companyId);
+            _customer.Company = _companyRepository.GetById(companyId);
             return this;
         }
 
-        public ICustomerBuilder AddCreditLimit(ICustomerCreditService creditService)
+        public ICustomerBuilder AddCreditLimit()
         {
-            if (creditService == null)
-                throw new ArgumentException("Service cannot be null");
-
             _customer.HasCreditLimit = true;
             switch (_customer.Company.Name)
             {
@@ -43,10 +44,10 @@ namespace App
                     _customer.HasCreditLimit = false;
                     break;
                 case "ImportantClient":
-                    _customer.CreditLimit = 2 * GetCreditLimit(creditService);
+                    _customer.CreditLimit = 2 * GetCreditLimit();
                     break;
                 default:
-                    _customer.CreditLimit = GetCreditLimit(creditService);
+                    _customer.CreditLimit = GetCreditLimit();
                     break;
             }
 
@@ -57,9 +58,9 @@ namespace App
             return this;
         }
 
-        private int GetCreditLimit(ICustomerCreditService creditService)
+        private int GetCreditLimit()
         {
-            return creditService.GetCreditLimit(_customer.Firstname, _customer.Surname, _customer.DateOfBirth);
+            return _customerCreditService.GetCreditLimit(_customer.Firstname, _customer.Surname, _customer.DateOfBirth);
         }
         public Customer Build()
         {

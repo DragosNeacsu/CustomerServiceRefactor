@@ -6,9 +6,9 @@ namespace App
 {
     public interface ICustomerBuilder
     {
-        ICustomerBuilder Add(string firstName, string surname, string email, DateTime dateOfBirth, ICustomerValidator customerValidator);
-        ICustomerBuilder AddCompany(int companyId, ICompanyRepository companyRepository);
-        ICustomerBuilder AddCreditLimit(ICustomerCreditService service);
+        ICustomerBuilder Add(string firstName, string surname, string email, DateTime dateOfBirth);
+        ICustomerBuilder AddCompany(int companyId);
+        ICustomerBuilder AddCreditLimit();
         Customer Build();
     }
 }

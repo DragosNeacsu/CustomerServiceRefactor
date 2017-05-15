@@ -16,20 +16,22 @@ namespace App.Tests
         [SetUp]
         public void SetUp()
         {
-            _customerBuilder = new CustomerBuilder();
             _customerValidator = Substitute.For<ICustomerValidator>();
             _companyRepository = Substitute.For<ICompanyRepository>();
             _customerCreditService = Substitute.For<ICustomerCreditService>();
 
             _companyRepository.GetById(Arg.Any<int>()).Returns(x => new Company { Id = x.ArgAt<int>(0) });
             _customerCreditService.GetCreditLimit(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>()).Returns(500);
+
+            _customerBuilder = new CustomerBuilder(_customerValidator, _customerCreditService, _companyRepository);
+
         }
 
         [Test]
         public void Add_ShouldCallValidator()
         {
             // When
-            _customerBuilder.Add("Joe", "Bloggs", "joe.bloggs@adomain.com", new DateTime(1980, 3, 27), _customerValidator);
+            _customerBuilder.Add("Joe", "Bloggs", "joe.bloggs@adomain.com", new DateTime(1980, 3, 27));
 
             // Then
             _customerValidator.Received(1).Validate(Arg.Any<Customer>());
@@ -39,7 +41,7 @@ namespace App.Tests
         public void Add_ValidCustomer_ShouldCreateCustomer()
         {
             // Given
-            _customerBuilder.Add("Joe", "Bloggs", "joe.bloggs@adomain.com", new DateTime(1980, 3, 27), _customerValidator);
+            _customerBuilder.Add("Joe", "Bloggs", "joe.bloggs@adomain.com", new DateTime(1980, 3, 27));
 
             // When
             var result = _customerBuilder.Build();
@@ -59,7 +61,7 @@ namespace App.Tests
             var companyId = 4;
 
             // When
-            _customerBuilder.AddCompany(companyId, _companyRepository);
+            _customerBuilder.AddCompany(companyId);
             var result = _customerBuilder.Build();
 
             // Then
@@ -75,8 +77,8 @@ namespace App.Tests
             _companyRepository.GetById(Arg.Any<int>()).Returns(new Company { Name = "VeryImportantClient" });
 
             // When
-            _customerBuilder.AddCompany(4, _companyRepository);
-            _customerBuilder.AddCreditLimit(_customerCreditService);
+            _customerBuilder.AddCompany(4);
+            _customerBuilder.AddCreditLimit();
             var result = _customerBuilder.Build();
 
             // Then
@@ -93,8 +95,8 @@ namespace App.Tests
             _companyRepository.GetById(Arg.Any<int>()).Returns(new Company { Name = "ImportantClient" });
 
             // When
-            _customerBuilder.AddCompany(4, _companyRepository);
-            _customerBuilder.AddCreditLimit(_customerCreditService);
+            _customerBuilder.AddCompany(4);
+            _customerBuilder.AddCreditLimit();
             var result = _customerBuilder.Build();
 
             // Then
@@ -108,8 +110,8 @@ namespace App.Tests
         public void AddCreditLimit_DefaultClient_ShouldSetCreditLimit()
         {
             // When
-            _customerBuilder.AddCompany(4, _companyRepository);
-            _customerBuilder.AddCreditLimit(_customerCreditService);
+            _customerBuilder.AddCompany(4);
+            _customerBuilder.AddCreditLimit();
             var result = _customerBuilder.Build();
 
             // Then
@@ -126,12 +128,12 @@ namespace App.Tests
         public void AddCreditLimit_InvalidCreditLimit_ShouldReturnthrowException(int creditLimit)
         {
             // Given
-            _customerBuilder.AddCompany(4, _companyRepository);
+            _customerBuilder.AddCompany(4);
             _customerCreditService.GetCreditLimit(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>()).Returns(creditLimit);
 
             // When Then
             var ex = Assert.Throws<ArgumentException>(
-                () => _customerBuilder.AddCreditLimit(_customerCreditService));
+                () => _customerBuilder.AddCreditLimit());
 
             Assert.AreEqual("Invalid Credit Limit", ex.Message);
         }

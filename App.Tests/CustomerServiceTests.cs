@@ -1,5 +1,4 @@
-﻿using App.ModelValidator;
-using App.Repositories;
+﻿using App.Repositories;
 using NSubstitute;
 using NUnit.Framework;
 using System;
@@ -17,16 +16,11 @@ namespace App.Tests
         {
             _customerBuilder = Substitute.For<ICustomerBuilder>();
             _customerRepository = Substitute.For<ICustomerRepository>();
-            _customerService = new CustomerService(
-                _customerBuilder,
-                Substitute.For<ICompanyRepository>(),
-                _customerRepository,
-                Substitute.For<ICustomerCreditService>(),
-                Substitute.For<ICustomerValidator>());
+            _customerService = new CustomerService(_customerBuilder, _customerRepository);
 
-            _customerBuilder.Add(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>(), Arg.Any<ICustomerValidator>()).Returns(_customerBuilder);
-            _customerBuilder.AddCompany(Arg.Any<int>(), Arg.Any<ICompanyRepository>()).Returns(_customerBuilder);
-            _customerBuilder.AddCreditLimit(Arg.Any<ICustomerCreditService>()).Returns(_customerBuilder);
+            _customerBuilder.Add(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>()).Returns(_customerBuilder);
+            _customerBuilder.AddCompany(Arg.Any<int>()).Returns(_customerBuilder);
+            _customerBuilder.AddCreditLimit().Returns(_customerBuilder);
         }
 
         [Test]
@@ -36,7 +30,7 @@ namespace App.Tests
             _customerService.AddCustomer("Joe", "Bloggs", "joe.bloggs@adomain.com", new DateTime(1980, 3, 27), 4);
 
             // Then
-            _customerBuilder.Received(1).Add("Joe", "Bloggs", "joe.bloggs@adomain.com", new DateTime(1980, 3, 27), Arg.Any<ICustomerValidator>());
+            _customerBuilder.Received(1).Add("Joe", "Bloggs", "joe.bloggs@adomain.com", new DateTime(1980, 3, 27));
         }
 
         [Test]
@@ -46,7 +40,7 @@ namespace App.Tests
             _customerService.AddCustomer("Joe", "Bloggs", "joe.bloggs@adomain.com", new DateTime(1980, 3, 27), 4);
 
             // Then
-            _customerBuilder.Received(1).AddCompany(4, Arg.Any<ICompanyRepository>());
+            _customerBuilder.Received(1).AddCompany(4);
         }
 
         [Test]
@@ -56,7 +50,7 @@ namespace App.Tests
             _customerService.AddCustomer("Joe", "Bloggs", "joe.bloggs@adomain.com", new DateTime(1980, 3, 27), 4);
 
             // Then
-            _customerBuilder.Received(1).AddCreditLimit(Arg.Any<ICustomerCreditService>());
+            _customerBuilder.Received(1).AddCreditLimit();
         }
 
         [Test]
