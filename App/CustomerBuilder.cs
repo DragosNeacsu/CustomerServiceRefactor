@@ -1,5 +1,4 @@
 ﻿using App.ModelValidator;
-using App.Repositories;
 using System;
 
 namespace App
@@ -8,15 +7,11 @@ namespace App
     {
         private static Customer _customer;
         private ICustomerValidator _customerValidator;
-        private ICustomerCreditService _customerCreditService;
-        private ICompanyRepository _companyRepository;
 
-        public CustomerBuilder(ICustomerValidator customerValidator, ICustomerCreditService customerCreditService, ICompanyRepository companyRepository)
+        public CustomerBuilder(ICustomerValidator customerValidator)
         {
             _customer = new Customer();
             _customerValidator = customerValidator;
-            _customerCreditService = customerCreditService;
-            _companyRepository = companyRepository;
         }
         public ICustomerBuilder Add(string firstName, string surname, string email, DateTime dateOfBirth)
         {
@@ -29,13 +24,13 @@ namespace App
             return this;
         }
 
-        public ICustomerBuilder AddCompany(int companyId)
+        public ICustomerBuilder AddCompany(Company company)
         {
-            _customer.Company = _companyRepository.GetById(companyId);
+            _customer.Company = company;
             return this;
         }
 
-        public ICustomerBuilder AddCreditLimit()
+        public ICustomerBuilder AddCreditLimit(int creditLimit)
         {
             _customer.HasCreditLimit = true;
             switch (_customer.Company.Name)
@@ -44,10 +39,10 @@ namespace App
                     _customer.HasCreditLimit = false;
                     break;
                 case "ImportantClient":
-                    _customer.CreditLimit = 2 * GetCreditLimit();
+                    _customer.CreditLimit = 2 * creditLimit;
                     break;
                 default:
-                    _customer.CreditLimit = GetCreditLimit();
+                    _customer.CreditLimit = creditLimit;
                     break;
             }
 
@@ -58,10 +53,6 @@ namespace App
             return this;
         }
 
-        private int GetCreditLimit()
-        {
-            return _customerCreditService.GetCreditLimit(_customer.Firstname, _customer.Surname, _customer.DateOfBirth);
-        }
         public Customer Build()
         {
             return _customer;

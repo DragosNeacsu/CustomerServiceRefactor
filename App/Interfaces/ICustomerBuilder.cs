@@ -7,8 +7,8 @@ namespace App
     public interface ICustomerBuilder
     {
         ICustomerBuilder Add(string firstName, string surname, string email, DateTime dateOfBirth);
-        ICustomerBuilder AddCompany(int companyId);
-        ICustomerBuilder AddCreditLimit();
+        ICustomerBuilder AddCompany(Company company);
+        ICustomerBuilder AddCreditLimit(int creditLimit);
         Customer Build();
     }
 }

@@ -1,5 +1,4 @@
 ﻿using App.ModelValidator;
-using App.Repositories;
 using NSubstitute;
 using NUnit.Framework;
 using System;
@@ -10,21 +9,12 @@ namespace App.Tests
     {
         private ICustomerBuilder _customerBuilder;
         private ICustomerValidator _customerValidator;
-        private ICompanyRepository _companyRepository;
-        private ICustomerCreditService _customerCreditService;
 
         [SetUp]
         public void SetUp()
         {
             _customerValidator = Substitute.For<ICustomerValidator>();
-            _companyRepository = Substitute.For<ICompanyRepository>();
-            _customerCreditService = Substitute.For<ICustomerCreditService>();
-
-            _companyRepository.GetById(Arg.Any<int>()).Returns(x => new Company { Id = x.ArgAt<int>(0) });
-            _customerCreditService.GetCreditLimit(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>()).Returns(500);
-
-            _customerBuilder = new CustomerBuilder(_customerValidator, _customerCreditService, _companyRepository);
-
+            _customerBuilder = new CustomerBuilder(_customerValidator);
         }
 
         [Test]
@@ -55,34 +45,32 @@ namespace App.Tests
         }
 
         [Test]
-        public void AddCompany_ValidCustomer_ShouldCallGetCompany()
+        public void AddCompany_ValidCustomer_ShouldSetCompany()
         {
             // Given
-            var companyId = 4;
+            var company = new Company { Id = 4 };
 
             // When
-            _customerBuilder.AddCompany(companyId);
+            _customerBuilder.AddCompany(company);
             var result = _customerBuilder.Build();
 
             // Then
-            _companyRepository.Received(1).GetById(companyId);
             Assert.NotNull(result);
-            Assert.AreEqual(companyId, result.Company.Id);
+            Assert.AreEqual(company, result.Company);
         }
 
         [Test]
         public void AddCreditLimit_VeryImportantClient_ShouldSetNoCreditLimit()
         {
             // Given
-            _companyRepository.GetById(Arg.Any<int>()).Returns(new Company { Name = "VeryImportantClient" });
+            var company = new Company { Name = "VeryImportantClient" };
 
             // When
-            _customerBuilder.AddCompany(4);
-            _customerBuilder.AddCreditLimit();
+            _customerBuilder.AddCompany(company);
+            _customerBuilder.AddCreditLimit(10);
             var result = _customerBuilder.Build();
 
             // Then
-            _customerCreditService.Received(0).GetCreditLimit(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>());
             Assert.NotNull(result);
             Assert.False(result.HasCreditLimit);
             Assert.AreEqual(0, result.CreditLimit);
@@ -92,15 +80,14 @@ namespace App.Tests
         public void AddCreditLimit_ImportantClient_ShouldSetCreditLimit()
         {
             // Given
-            _companyRepository.GetById(Arg.Any<int>()).Returns(new Company { Name = "ImportantClient" });
+            var company = new Company { Name = "ImportantClient" };
 
             // When
-            _customerBuilder.AddCompany(4);
-            _customerBuilder.AddCreditLimit();
+            _customerBuilder.AddCompany(company);
+            _customerBuilder.AddCreditLimit(500);
             var result = _customerBuilder.Build();
 
             // Then
-            _customerCreditService.Received(1).GetCreditLimit(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>());
             Assert.NotNull(result);
             Assert.True(result.HasCreditLimit);
             Assert.AreEqual(2 * 500, result.CreditLimit);
@@ -110,12 +97,11 @@ namespace App.Tests
         public void AddCreditLimit_DefaultClient_ShouldSetCreditLimit()
         {
             // When
-            _customerBuilder.AddCompany(4);
-            _customerBuilder.AddCreditLimit();
+            _customerBuilder.AddCompany(new Company());
+            _customerBuilder.AddCreditLimit(500);
             var result = _customerBuilder.Build();
 
             // Then
-            _customerCreditService.Received(1).GetCreditLimit(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>());
             Assert.NotNull(result);
             Assert.True(result.HasCreditLimit);
             Assert.AreEqual(500, result.CreditLimit);
@@ -128,12 +114,11 @@ namespace App.Tests
         public void AddCreditLimit_InvalidCreditLimit_ShouldReturnthrowException(int creditLimit)
         {
             // Given
-            _customerBuilder.AddCompany(4);
-            _customerCreditService.GetCreditLimit(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<DateTime>()).Returns(creditLimit);
+            _customerBuilder.AddCompany(new Company());
 
             // When Then
             var ex = Assert.Throws<ArgumentException>(
-                () => _customerBuilder.AddCreditLimit());
+                () => _customerBuilder.AddCreditLimit(creditLimit));
 
             Assert.AreEqual("Invalid Credit Limit", ex.Message);
         }
